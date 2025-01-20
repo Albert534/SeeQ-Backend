@@ -27,7 +27,7 @@ const createToken = (username) => {
 };
 // User creation controller
 const userCreation = catchAsync(async (req, res, next) => {
-	const { username, email, password } = req.body;
+	const { username, email, password } = req.body.signUpData;
 
 	const cookiesExpiryDate = Number(process.env.JWT_EXPIRES_IN) || 90;
 
@@ -50,6 +50,13 @@ const userCreation = catchAsync(async (req, res, next) => {
 		return next(
 			new AppError('Password must be at least 6 characters long', 400)
 		);
+
+	const emailCheckQuery = 'SELECT id FROM users WHERE email = $1';
+	const emailCheckResult = await pool.query(emailCheckQuery, [email]);
+
+	if (emailCheckResult.rowCount > 0) {
+		return next(new AppError('Email already exists', 409));
+	}
 
 	const hashedPassword = await hashPassword(password);
 	const token = createToken(req.body.username);
